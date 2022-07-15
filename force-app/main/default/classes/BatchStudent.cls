@@ -10,41 +10,69 @@ global class BatchStudent implements Database.Batchable<SObject>, Database.State
         );
     }
     global void execute(Database.BatchableContext bc, List<HocSinh__c> records){
-        List<Diem__c> listPoint1 =  new List<Diem__c>();
-        listPoint = [SELECT Id, Diem__c, HocSinh__c,Mon__c FROM Diem__c WHERE HocSinh__c IN :records];
+        List<Diem__c> listPoints =  new List<Diem__c>();
+        listPoints = [SELECT Id, Diem__c, HocSinh__c, Mon__c FROM Diem__c WHERE HocSinh__c IN :records];
         
-        Map<String,List<Diem__c>> mapPoint= new Map<String,List<Diem__c>>();
-        mapPoint= mapPointById(listPoint);
+        Map<String, List<Diem__c>> mapPoint= new Map<String, List<Diem__c>>();
+        mapPoint= mapPointById(listPoints);
 
         List<Diem__c> listPointUpdate =  new List<Diem__c>();
-        for (HocSinh__c student : records) {
-            List<Diem__c> list = mapPoint.get(student.Id);
-           Boolean flagHoa= false;
-           Boolean flagLy= false;
-           Boolean flagToan= false;
-            for(Diem__c diem: list){
-                if(diem.Mon__c.equals('Hóa') && diem.Diem__c.equals(student.Diem1__c)){
-                    flagHoa =true;
-                }
-                if(diem.Mon__c.equals('Lý')  && diem.Diem__c.equals(student.Diem2__c)){
-                    flagLy =true;
-                }
-                if(diem.Mon__c.equals('Toán')  && diem.Diem__c.equals(student.Diem3__c)){
-                    flagToan =true;
-                }
-            }
+        if(mapPoint.size() != 0 ){
+            System.debug('Khac 0');
+            for (HocSinh__c student : records) {
+                List<Diem__c> listPoint = mapPoint.get(student.Id);
 
-            if(flagHoa === false){
-                listPoint.add(new Diem__c(student.Id, student.Diem1__c, 'Hóa'));
+                if (listPoint.size() != 0) {
+                    Boolean flagHoa = true;
+                    Boolean flagLy = true;
+                    Boolean flagToan= true;
+
+                    for(Diem__c point : listPoint){
+                      
+                        if(point.Mon__c == 'Hóa'){
+                            flagHoa = false; 
+                            if(point.Diem__c != student.Diem1__c){
+                                listPointUpdate.add(new Diem__c(Id = point.Id, Diem__c = student.Diem1__c));
+                            }
+                        }
+                        if(point.Mon__c == 'Lý'){
+                            flagLy = false;
+                            if(point.Diem__c != student.Diem2__c){
+                                listPointUpdate.add(new Diem__c(Id = point.Id, Diem__c = student.Diem2__c));
+                            }
+                        }
+                        if(point.Mon__c == 'Toán'){
+                            flagToan = false; 
+                            if(point.Diem__c != student.Diem3__c){
+                                listPointUpdate.add(new Diem__c(Id = point.Id, Diem__c = student.Diem3__c));
+                            }
+                        }
+                    }
+
+                    if(flagHoa == true){
+                        listPointUpdate.add(new Diem__c(HocSinh__c = student.Id, Diem__c = student.Diem1__c, Mon__c = 'Hóa'));
+                    }
+                    if(flagLy == true){
+                        listPointUpdate.add(new Diem__c(HocSinh__c = student.Id, Diem__c = student.Diem2__c, Mon__C = 'Lý'));
+                    }
+                    if(flagToan == true){
+                        listPointUpdate.add(new Diem__c(HocSinh__c = student.Id, Diem__c = student.Diem2__c, Mon__C = 'Toán'));
+                    }
+                } else {
+                    listPointUpdate.add(new Diem__c(HocSinh__c = student.Id, Diem__c = student.Diem1__c, Mon__c = 'Hóa'));
+                    listPointUpdate.add(new Diem__c(HocSinh__c = student.Id, Diem__c = student.Diem2__c, Mon__C = 'Lý'));
+                    listPointUpdate.add(new Diem__c(HocSinh__c = student.Id, Diem__c = student.Diem3__c, Mon__c = 'Toán'));
+                }
             }
-            if(flagLy === false){
-                listPoint.add(new Diem__c(student.Id, student.Diem2__c, 'Lý'));
+        } else {
+            System.debug('rc'+records.size());
+            for (HocSinh__c student : records) {
+                listPointUpdate.add(new Diem__c(HocSinh__c = student.Id, Diem__c = student.Diem1__c, Mon__c = 'Hóa'));
+                listPointUpdate.add(new Diem__c(HocSinh__c = student.Id, Diem__c = student.Diem2__c, Mon__C = 'Lý'));
+                listPointUpdate.add(new Diem__c(HocSinh__c = student.Id, Diem__c = student.Diem3__c, Mon__c = 'Toán'));
             }
-            if(flagToan === false){
-                listPoint.add(new Diem__c(student.Id, student.Diem3__c, 'Toán'));
-            }
-          }
-        upsert listPoint;
+        }
+        upsert listPointUpdate;
     }
 
     global void finish(Database.BatchableContext bc){
@@ -62,5 +90,10 @@ global class BatchStudent implements Database.Batchable<SObject>, Database.State
            listMap.get(point.HocSinh__c).add(point);
            }
         }
+        return listMap;
     }
 }
+
+// List<Diem__c> lista= [SELECT Id FROM Diem__c];
+// delete lista;
+//Database.executeBatch(new BatchStudent(), 2);
